@@ -12,10 +12,10 @@ import (
 var assets embed.FS
 
 // Add /assets handler on http
-func AddAssetsHandler() {
+func AddAssetsHandler(server *http.ServeMux) {
 	// Proxy everything to vite in dev mode
 	if IsDevMode {
-		http.HandleFunc("/assets/", redirectToVite)
+		server.HandleFunc("/assets/", redirectToVite)
 		return
 	}
 
@@ -24,7 +24,7 @@ func AddAssetsHandler() {
 	if err != nil {
 		panic(fmt.Sprintf("Cannot sub public directory %v", err))
 	}
-	http.Handle("/assets/", http.FileServer(http.FS(assetsFs)))
+	server.Handle("/assets/", http.FileServer(http.FS(assetsFs)))
 }
 
 func GetAssetsTags() string {

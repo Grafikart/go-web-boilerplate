@@ -29,9 +29,17 @@ func homeHandler(w http.ResponseWriter, r *http.Request) {
 	`, GetAssetsTags())
 }
 
+func PushHandler(w http.ResponseWriter, r *http.Request) {
+	pushMessage("Hello world")
+	w.WriteHeader(204)
+}
+
 func main() {
-	http.HandleFunc("/", homeHandler)
-	AddAssetsHandler()
+	server := http.NewServeMux()
+	server.HandleFunc("/sse", sseHandler)
+	server.HandleFunc("/push", PushHandler)
+	AddAssetsHandler(server)
+	server.HandleFunc("/", homeHandler)
 	fmt.Println("Server is running on http://localhost:8080")
-	log.Fatal(http.ListenAndServe(":8080", nil))
+	log.Fatal(http.ListenAndServe(":8080", server))
 }
