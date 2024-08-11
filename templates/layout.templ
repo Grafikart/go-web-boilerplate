@@ -1,0 +1,29 @@
+package templates
+
+import "os"
+
+var assets = assetsTags()
+
+templ Layout(name string) {
+	<!DOCTYPE html>
+	<html lang="en">
+		<head>
+			<meta charset="UTF-8"/>
+			<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+			<title>Go boilerplate</title>
+			@assets
+		</head>
+		<body>
+			{ children... }
+		</body>
+	</html>
+}
+
+templ assetsTags() {
+	if os.Getenv("APP_ENV") == "dev" {
+		<script type="module" src="http://localhost:3000/@vite/client"></script>
+		<script src="http://localhost:3000/assets/main.tsx" type="module"></script>
+	}
+	<script src="/assets/index.js" type="module"></script>
+	<link rel="stylesheet" href="/assets/index.css"/>
+}

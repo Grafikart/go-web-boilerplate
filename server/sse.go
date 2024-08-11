@@ -1,7 +1,8 @@
-package main
+package server
 
 import (
 	"fmt"
+	"grafikart/boilerplate/utils"
 	"net/http"
 	"sync"
 )
@@ -9,14 +10,14 @@ import (
 var channels []*chan string
 var mu sync.Mutex
 
-func pushMessage(msg string) {
+func PushMessage(msg string) {
 	fmt.Printf("Sending to %v:", len(channels))
 	for _, ch := range channels {
 		*ch <- msg
 	}
 }
 
-func sseHandler(w http.ResponseWriter, r *http.Request) {
+func SSEHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/event-stream")
 	w.Header().Set("Cache-Control", "no-cache")
 	w.Header().Set("Connection", "keep-alive")
@@ -37,7 +38,7 @@ func sseHandler(w http.ResponseWriter, r *http.Request) {
 	defer func() {
 		mu.Lock()
 		close(ch)
-		channels = removeItem(channels, &ch)
+		channels = utils.RemoveItem(channels, &ch)
 		ch = nil
 		mu.Unlock()
 	}()

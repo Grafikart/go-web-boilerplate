@@ -1,6 +1,6 @@
-package main
+package utils
 
-func removeItem[K comparable](s []K, item K) []K {
+func RemoveItem[K comparable](s []K, item K) []K {
 	pos := -1
 	for k, v := range s {
 		if v == item {
@@ -11,10 +11,10 @@ func removeItem[K comparable](s []K, item K) []K {
 	if pos == -1 {
 		return s
 	}
-	return removeAt(s, pos)
+	return RemoveAt(s, pos)
 }
 
-func removeAt[K comparable](s []K, i int) []K {
+func RemoveAt[K comparable](s []K, i int) []K {
 	s[i] = s[len(s)-1]
 	return s[:len(s)-1]
 }

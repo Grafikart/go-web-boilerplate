@@ -1,45 +1,26 @@
 package main
 
 import (
+	"embed"
 	"fmt"
+	"grafikart/boilerplate/server"
+	"grafikart/boilerplate/utils"
+	"io/fs"
 	"log"
 	"net/http"
 	"os"
 )
 
+//go:embed public/assets/*
+var assets embed.FS
 var IsDevMode = os.Getenv("APP_ENV") == "dev"
 var VitePort = 3000
 
-func homeHandler(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "text/html")
-	fmt.Fprintf(w, `
-		<!DOCTYPE html>
-		<html lang="en">
-		<head>
-			<meta charset="UTF-8">
-			<meta name="viewport" content="width=device-width, initial-scale=1.0">
-			<title>Welcome to My Go Server</title>
-			%s
-		</head>
-		<body>
-			<h1>Hello, World!</h1>
-			<p>This is a simple web server written in Go.</p>
-		</body>
-		</html>
-	`, GetAssetsTags())
-}
-
-func PushHandler(w http.ResponseWriter, r *http.Request) {
-	pushMessage("Hello world")
-	w.WriteHeader(204)
-}
-
 func main() {
-	server := http.NewServeMux()
-	server.HandleFunc("/sse", sseHandler)
-	server.HandleFunc("/push", PushHandler)
-	AddAssetsHandler(server)
-	server.HandleFunc("/", homeHandler)
+	s := http.NewServeMux()
+	s.HandleFunc("/sse", server.SSEHandler)
+	server.AddAssetsHandler(s, utils.Force(fs.Sub(assets, "public")))
+	s.HandleFunc("/", server.HomeHandler)
 	fmt.Println("Server is running on http://localhost:8080")
-	log.Fatal(http.ListenAndServe(":8080", server))
+	log.Fatal(http.ListenAndServe(":8080", s))
 }

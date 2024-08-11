@@ -1,3 +1,6 @@
+templates/*.go
+templates/*.txt
+
 # Logs
 logs
 *.log

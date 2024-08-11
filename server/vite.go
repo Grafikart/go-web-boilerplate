@@ -1,20 +1,17 @@
-package main
+package server
 
 import (
-	"embed"
 	"fmt"
 	"io/fs"
 	"net/http"
+	"os"
 	"strings"
 )
 
-//go:embed public/assets/*
-var assets embed.FS
-
 // Add /assets handler on http
-func AddAssetsHandler(server *http.ServeMux) {
+func AddAssetsHandler(server *http.ServeMux, assets fs.FS) {
 	// Proxy everything to vite in dev mode
-	if IsDevMode {
+	if os.Getenv("APP_ENV") == "dev" {
 		server.HandleFunc("/assets/", redirectToVite)
 		return
 	}
@@ -28,7 +25,7 @@ func AddAssetsHandler(server *http.ServeMux) {
 }
 
 func GetAssetsTags() string {
-	if IsDevMode {
+	if os.Getenv("APP_ENV") == "dev" {
 		return `<script type="module" src="http://localhost:3000/@vite/client"></script>
 			<script src="http://localhost:3000/assets/main.tsx" type="module"></script>`
 	}
