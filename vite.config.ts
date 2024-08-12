@@ -6,20 +6,20 @@ export default defineConfig({
   plugins: [preact()],
   server: {
     port: 3000,
-    host: "0.0.0.0",
     cors: true,
   },
   base: "/",
   build: {
+    manifest: true,
     outDir: "./public/assets/",
     rollupOptions: {
       input: {
         main: "./assets/main.tsx",
       },
       output: {
-        entryFileNames: "[name].js",
-        assetFileNames: "[name][extname]",
-        chunkFileNames: "[name][extname]",
+        entryFileNames: "[name]-[hash].js",
+        assetFileNames: "[name]-[hash][extname]",
+        chunkFileNames: "[name]-[hash][extname]",
       },
     },
   },

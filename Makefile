@@ -12,4 +12,5 @@ build: ## Generates executable
 	go build
 
 public/assets/main.js:
+	mkdir -p public/assets
 	touch public/assets/main.js

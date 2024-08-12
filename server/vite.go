@@ -2,40 +2,82 @@ package server
 
 import (
 	"fmt"
+	"grafikart/boilerplate/utils"
 	"io/fs"
+	"log"
 	"net/http"
 	"os"
 	"strings"
 )
 
-// Add /assets handler on http
-func AddAssetsHandler(server *http.ServeMux, assets fs.FS) {
-	// Proxy everything to vite in dev mode
-	if os.Getenv("APP_ENV") == "dev" {
-		server.HandleFunc("/assets/", redirectToVite)
-		return
-	}
+type ViteAssets struct {
+	publicPath   string
+	assets       fs.FS
+	manifestPath string
+	hasManifest  bool
+	port         int16
+}
 
-	// Otherwise serve static assets from public directory
+func NewViteAssets(assets fs.FS) *ViteAssets {
+	manifestPath := "public/assets/.vite/manifest.json"
 	assetsFs, err := fs.Sub(assets, "public")
 	if err != nil {
 		panic(fmt.Sprintf("Cannot sub public directory %v", err))
 	}
-	server.Handle("/assets/", http.FileServer(http.FS(assetsFs)))
+	_, err = os.Stat(manifestPath)
+	return &ViteAssets{
+		publicPath:   "/assets/",
+		assets:       assetsFs,
+		manifestPath: manifestPath,
+		hasManifest:  err == nil,
+		port:         3000,
+	}
 }
 
-func GetAssetsTags() string {
-	if os.Getenv("APP_ENV") == "dev" {
-		return `<script type="module" src="http://localhost:3000/@vite/client"></script>
-			<script src="http://localhost:3000/assets/main.tsx" type="module"></script>`
+func (v ViteAssets) ServeAssets(w http.ResponseWriter, r *http.Request) {
+	if v.hasManifest {
+		http.FileServer(http.FS(v.assets)).ServeHTTP(w, r)
+		return
 	}
 
-	return `<script src="/assets/index.js" type="module"></script><link rel="stylesheet" href="/assets/index.css">`
-}
-
-func redirectToVite(w http.ResponseWriter, r *http.Request) {
+	// Proxy everything to vite in dev mode
 	u := *r.URL
-	u.Host = strings.Split(r.Host, ":")[0] + ":3000"
+	u.Host = fmt.Sprintf("%s:%d", strings.Split(r.Host, ":")[0], v.port)
 	w.Header().Set("Location", u.String())
 	w.WriteHeader(301)
+}
+
+type manifestItem struct {
+	File    string   `json:"file"`
+	Name    string   `json:"name"`
+	Src     string   `json:"src"`
+	IsEntry bool     `json:"isEntry"`
+	CSS     []string `json:"css"`
+}
+
+type manifestData map[string]manifestItem
+
+func (v ViteAssets) GetHeadHTML() string {
+	var sb strings.Builder
+	if !v.hasManifest {
+		sb.WriteString(fmt.Sprintf(`<script type="module" src="http://localhost:%[1]d/@vite/client"></script>
+			<script src="http://localhost:%[1]d/assets/main.tsx" type="module"></script>`, v.port))
+		return sb.String()
+	}
+
+	var assets manifestData
+	err := utils.ParseJsonFile(v.manifestPath, &assets)
+
+	if err != nil {
+		log.Fatalf("Cannot parse vite manifest file: %v", err)
+	}
+
+	for _, item := range assets {
+		sb.WriteString(fmt.Sprintf("<script type=\"module\" src=\"%s%s\"></script>", v.publicPath, item.File))
+		for _, css := range item.CSS {
+			sb.WriteString(fmt.Sprintf("<link rel=\"strylesheet\" src=\"%s%s\">", v.publicPath, css))
+		}
+	}
+
+	return sb.String()
 }
