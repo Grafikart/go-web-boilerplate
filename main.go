@@ -5,19 +5,38 @@ import (
 	"embed"
 	"fmt"
 	"grafikart/boilerplate/server"
+	"io/fs"
 	"log"
 	"net/http"
 )
 
-//go:embed public/assets/*
+//go:embed all:public
 var assets embed.FS
 
 func main() {
-	viteAssets := server.NewViteAssets(assets)
+	publicFS, err := fs.Sub(assets, "public")
+	if err != nil {
+		panic(fmt.Sprintf("Cannot sub public directory from %v", err))
+	}
+
+	viteAssets := server.NewViteAssets(publicFS)
 	frontMiddleware := createFrontEndMiddleware(*viteAssets)
+	publicServer := http.FileServer(http.FS(publicFS))
+
+	// Static Assets
 	http.HandleFunc("/sse", server.SSEHandler)
 	http.HandleFunc("/assets/", viteAssets.ServeAssets)
-	http.HandleFunc("/", frontMiddleware(server.HomeHandler))
+
+	// FrontEnd URLs
+	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		// Serve the root
+		if r.URL.Path == "/" {
+			frontMiddleware(server.HomeHandler)(w, r)
+			return
+		}
+		// Otherwise serve public files
+		publicServer.ServeHTTP(w, r)
+	})
 	fmt.Println("Server is running on http://localhost:8080")
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }
